@@ -98,7 +98,7 @@ def process_LIAR_dataset():
 
             full_text_tokens, non_stopword_tokens = get_cleaned_tokens(text)
 
-            reading_ease = textstat.flesch_kincaid_grade(text)
+            reading_ease = textstat.linsear_write_formula(text)
             tagged = nltk.pos_tag(full_text_tokens, tagset='universal')
             adverb_count = len([word for word in tagged if word[1] == "ADV"])
             noun_count = len([word for word in tagged if word[1] == "NOUN"])
