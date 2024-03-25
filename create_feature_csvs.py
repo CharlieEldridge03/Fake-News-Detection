@@ -1,7 +1,7 @@
 import os.path
 import pandas as pd
 import nltk
-from nltk import word_tokenize
+from nltk import word_tokenize, WordNetLemmatizer
 import re
 import textstat
 from nltk.corpus import stopwords
@@ -57,7 +57,7 @@ def normalise_data(dataframe):
     return full_scaled_dataframe
 
 
-def get_cleaned_tokens(text):
+def get_cleaned_tokens(text, lemmatizer):
     stop_words = set(stopwords.words('english'))
 
     # Replace Non-alpha numeric (symbols, punctuation) with blank spaces.
@@ -75,10 +75,14 @@ def get_cleaned_tokens(text):
     # Filter tokens to remove stopwords.
     non_stopword_tokens = [token for token in full_text_tokens if token not in stop_words]
 
-    return full_text_tokens, non_stopword_tokens
+    # Lemmatise remaining non-stopword tokens.
+    lemmatized_tokens = [lemmatizer.lemmatize(token) for token in non_stopword_tokens]
+
+    return full_text_tokens, lemmatized_tokens
 
 
 def process_LIAR_dataset():
+    lemmatizer = WordNetLemmatizer()
     file_paths = get_dataset_file_paths("LIAR_Dataset", ".tsv")
 
     LIAR_data = {"text": [], "reading_ease": [], "adjective_count": [], "adverb_count": [],
@@ -96,7 +100,8 @@ def process_LIAR_dataset():
             label = row.label
             text = row.statement
 
-            full_text_tokens, non_stopword_tokens = get_cleaned_tokens(text)
+            full_text_tokens, lemmatized_tokens = get_cleaned_tokens(text, lemmatizer)
+            lemmatized_text = " ".join(lemmatized_tokens)
 
             reading_ease = textstat.linsear_write_formula(text)
             tagged = nltk.pos_tag(full_text_tokens, tagset='universal')
@@ -107,7 +112,7 @@ def process_LIAR_dataset():
 
             label_dict = {"true": 0, "mostly-true": 1, "half-true": 2, "barely-true": 3, "false": 4, "pants-fire": 5}
 
-            LIAR_data["text"].append(" ".join(non_stopword_tokens))
+            LIAR_data["text"].append(lemmatized_text)
             LIAR_data["reading_ease"].append(reading_ease)
             LIAR_data["adjective_count"].append(adjective_count)
             LIAR_data["verb_count"].append(verb_count)
