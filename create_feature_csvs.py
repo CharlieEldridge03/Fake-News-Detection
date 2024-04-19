@@ -44,9 +44,9 @@ def create_output_directories():
 
 def normalise_data(dataframe):
     min_max_scaler = MinMaxScaler()
-    dataframe_non_text = pd.DataFrame(dataframe[dataframe.columns[1: 6]])
+    dataframe_non_text = pd.DataFrame(dataframe[dataframe.columns[1: 17]])
     dataframe_text = pd.DataFrame(dataframe[dataframe.columns[0]])
-    dataframe_label = pd.DataFrame(dataframe[dataframe.columns[6]])
+    dataframe_label = pd.DataFrame(dataframe[dataframe.columns[17]])
 
     scaled_data = min_max_scaler.fit_transform(dataframe_non_text)
     scaled_dataframe = pd.DataFrame(scaled_data, columns=dataframe_non_text.columns)
@@ -83,10 +83,14 @@ def get_cleaned_tokens(text, lemmatizer):
 
 def process_LIAR_dataset():
     lemmatizer = WordNetLemmatizer()
-    file_paths = get_dataset_file_paths("LIAR_Dataset", ".tsv")
+    file_paths = get_dataset_file_paths("datasets/LIAR_Dataset", ".tsv")
 
-    LIAR_data = {"text": [], "reading_ease": [], "adjective_count": [], "adverb_count": [],
-                 "noun_count": [], "verb_count": [], "label": []}
+    LIAR_data = {"text": [], "adjective_count": [], "adverb_count": [],
+                    "noun_count": [], "verb_count": [], "flesch_reading_ease": [], "flesch_kincaid_grade_level": [],
+                    "gunning_fog_scale": [], "coleman_liau_index": [],
+                    "linsear_write_formula": [], "dale_chall_readability": [],
+                    "mcalpine_eflaw_readability": [], "reading_time": [], "syllable_count": [],
+                    "lexicon_count": [], "polysyllable_count": [], "monosyllable_count": [], "label": []}
 
     for file_path in file_paths:
         file_name = file_path.split("\\")[-1]
@@ -103,7 +107,18 @@ def process_LIAR_dataset():
             full_text_tokens, lemmatized_tokens = get_cleaned_tokens(text, lemmatizer)
             lemmatized_text = " ".join(lemmatized_tokens)
 
-            reading_ease = textstat.linsear_write_formula(text)
+            flesch_reading_ease = textstat.flesch_reading_ease(text)
+            flesch_kincaid_grade_level = textstat.flesch_kincaid_grade(text)
+            gunning_fog_scale = textstat.gunning_fog(text)
+            coleman_liau_index = textstat.coleman_liau_index(text)
+            linsear_write_formula = textstat.linsear_write_formula(text)
+            dale_chall_readability = textstat.dale_chall_readability_score(text)
+            mcalpine_eflaw_readability = textstat.mcalpine_eflaw(text)
+            reading_time = textstat.reading_time(text, ms_per_char=14.69)
+            syllable_count = textstat.syllable_count(text)
+            lexicon_count = textstat.lexicon_count(text, removepunct=True)
+            polysyllable_count = textstat.polysyllabcount(text)
+            monosyllable_count = textstat.monosyllabcount(text)
             tagged = nltk.pos_tag(full_text_tokens, tagset='universal')
             adverb_count = len([word for word in tagged if word[1] == "ADV"])
             noun_count = len([word for word in tagged if word[1] == "NOUN"])
@@ -113,11 +128,22 @@ def process_LIAR_dataset():
             label_dict = {"true": 0, "mostly-true": 1, "half-true": 2, "barely-true": 3, "false": 4, "pants-fire": 5}
 
             LIAR_data["text"].append(lemmatized_text)
-            LIAR_data["reading_ease"].append(reading_ease)
             LIAR_data["adjective_count"].append(adjective_count)
             LIAR_data["verb_count"].append(verb_count)
             LIAR_data["noun_count"].append(noun_count)
             LIAR_data["adverb_count"].append(adverb_count)
+            LIAR_data["flesch_reading_ease"].append(flesch_reading_ease)
+            LIAR_data["flesch_kincaid_grade_level"].append(flesch_kincaid_grade_level)
+            LIAR_data["gunning_fog_scale"].append(gunning_fog_scale)
+            LIAR_data["coleman_liau_index"].append(coleman_liau_index)
+            LIAR_data["linsear_write_formula"].append(linsear_write_formula)
+            LIAR_data["dale_chall_readability"].append(dale_chall_readability)
+            LIAR_data["mcalpine_eflaw_readability"].append(mcalpine_eflaw_readability)
+            LIAR_data["reading_time"].append(reading_time)
+            LIAR_data["syllable_count"].append(syllable_count)
+            LIAR_data["lexicon_count"].append(lexicon_count)
+            LIAR_data["polysyllable_count"].append(polysyllable_count)
+            LIAR_data["monosyllable_count"].append(monosyllable_count)
             LIAR_data["label"].append(label_dict[label])
 
     return LIAR_data
@@ -133,8 +159,12 @@ def main():
     processed_LIAR_data = process_LIAR_dataset()
     print("Done Processing LIAR dataset.")
 
-    column_names = ["text", "reading_ease", "adjective_count", "adverb_count",
-                    "noun_count", "verb_count", "label"]
+    column_names = ["text", "adjective_count", "adverb_count",
+                    "noun_count", "verb_count", "flesch_reading_ease", "flesch_kincaid_grade_level",
+                    "gunning_fog_scale", "coleman_liau_index",
+                    "linsear_write_formula", "dale_chall_readability",
+                    "mcalpine_eflaw_readability", "reading_time", "syllable_count",
+                    "lexicon_count", "polysyllable_count", "monosyllable_count", "label"]
 
     LIAR_dataframe = pd.DataFrame(processed_LIAR_data, columns=column_names)
     LIAR_dataframe = normalise_data(LIAR_dataframe)
