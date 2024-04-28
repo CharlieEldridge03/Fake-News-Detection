@@ -13,7 +13,7 @@ import torch
 
 
 def load_liar_data():
-    LIAR_dataframe = pd.read_csv("processed_datasets/LIAR_Dataset_processed/processed_LIAR.csv", index_col=False)
+    LIAR_dataframe = pd.read_csv("processed_datasets_nonLemma/LIAR_Dataset_processed/processed_LIAR.csv", index_col=False)
     LIAR_dataframe = LIAR_dataframe.dropna()
 
     X = LIAR_dataframe[LIAR_dataframe.columns[0]]
@@ -23,7 +23,7 @@ def load_liar_data():
 
 
 def load_isot_data():
-    ISOT_dataframe = pd.read_csv("processed_datasets/ISOT_Fake_News_Dataset_processed/processed_ISOT.csv", index_col=False)
+    ISOT_dataframe = pd.read_csv("processed_datasets_nonLemma/ISOT_Fake_News_Dataset_processed/processed_ISOT.csv", index_col=False)
     ISOT_dataframe = ISOT_dataframe.dropna()
 
     label_dict = {
