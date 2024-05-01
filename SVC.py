@@ -137,14 +137,14 @@ def grid_search_svc(X_train, y_train, X_test, y_test, ngram_range, scoring_metri
         accuracy = round(accuracy_score(y_test, grid_predictions) * 100, 2)
         plt.title("Accuracy Score: {}%".format(accuracy))
         plt.suptitle("Model Params: [{}]".format(grid.best_estimator_), fontsize="small")
-        plt.savefig("ISOT_Text_Trunc100_{}_ngrams{}_TFIDF_Lemma.png".format(scoring_metric, ngram_range))
+        plt.savefig("ISOT_Titles_Trunc100_{}_ngrams{}.png".format(scoring_metric, ngram_range))
         report = classification_report(y_test, grid_predictions)
         print("Classification Report: {}\n".format(report))
-        joblib.dump(grid, "ISOT_Text_Trunc100_{}_ngrams{}_TFIDF_Lemma.pkl".format(scoring_metric, ngram_range))
+        joblib.dump(grid, "ISOT_Titles_Trunc100_{}_ngrams{}.pkl".format(scoring_metric, ngram_range))
 
 
 def main():
-    ngram_range = (2, 2)
+    ngram_range = (1, 1)
     scoring_metric = ["accuracy", "f1_macro"]
     param_grid = {'C': [0.01, 0.1, 1, 10, 100, 1000],
                   'gamma': [0.01, 0.1, 1, 10, 100, 1000],
