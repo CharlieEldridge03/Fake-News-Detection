@@ -1,14 +1,25 @@
+import pickle
+import numpy as np
 import pandas as pd
+import scipy as sp
 import matplotlib.pyplot as plt
+import shap
+import torch
+import transformers
+from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.decomposition import TruncatedSVD
+from sklearn.ensemble import VotingClassifier, StackingClassifier, BaggingClassifier, AdaBoostClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, classification_report
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.svm import SVC
 from sklearn.preprocessing import MaxAbsScaler, MinMaxScaler
+from sklearn.utils import resample
 import joblib
 from sklearn.model_selection import StratifiedKFold
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, TextClassificationPipeline
+from scipy.special import softmax
 
 
 def load_liar_data():
@@ -84,28 +95,11 @@ def create_tfidf_features(X_train, X_test, ngram_range):
     return scaled_X_train, scaled_X_test
 
 
-def get_linguistic_features(X_train, X_test):
-    X_train = X_train.drop("text", axis=1)
-    X_test = X_test.drop("text", axis=1)
-
-    # Re-scale the combined train and validation values
-    scaled_X_train, scaled_X_test = min_max_scale(X_train, X_test)
-
-    return scaled_X_train, scaled_X_test
-
-
-def undersample(X_train, y_train):
-    under_sampler = RandomUnderSampler(random_state=42)
-    X_train, y_train = under_sampler.fit_resample(X_train, y_train)
+def oversample(X_train, y_train):
+    over_sampler = SMOTE(random_state=42)
+    X_train, y_train = over_sampler.fit_resample(X_train, y_train)
 
     return X_train, y_train
-
-
-def re_label(y_train, y_test, new_class_labels):
-    y_train.replace([0, 1, 2, 3, 4, 5], new_class_labels, inplace=True)
-    y_test.replace([0, 1, 2, 3, 4, 5], new_class_labels, inplace=True)
-
-    return y_train, y_test
 
 
 def perform_truncation(X_train, X_test, y_train, num_components):
@@ -123,59 +117,66 @@ def perform_truncation(X_train, X_test, y_train, num_components):
     return scaled_X_train, scaled_X_test
 
 
-def grid_search_svc(X_train, y_train, X_test, y_test, ngram_range, scoring_metrics, param_grid):
-    for scoring_metric in scoring_metrics:
-        k_folds = StratifiedKFold(n_splits=5)
-        grid = GridSearchCV(SVC(random_state=42), param_grid, cv=k_folds, refit=True, verbose=10,
-                            scoring=scoring_metric, n_jobs=8)
-        grid.fit(X_train, y_train)
-        print(grid.best_estimator_)
-        grid_predictions = grid.predict(X_test)
-        cm = confusion_matrix(y_test, grid_predictions)
-        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=grid.classes_)
-        disp.plot()
-        accuracy = round(accuracy_score(y_test, grid_predictions) * 100, 2)
-        plt.title("Accuracy Score: {}%".format(accuracy))
-        plt.suptitle("Model Params: [{}]".format(grid.best_estimator_), fontsize="small")
-        plt.savefig("ISOT_Text_Trunc100_{}_ngrams{}.png".format(scoring_metric, ngram_range))
-        report = classification_report(y_test, grid_predictions)
-        print("Classification Report: {}\n".format(report))
-        joblib.dump(grid, "ISOT_Text_Trunc100_{}_ngrams{}.pkl".format(scoring_metric, ngram_range))
-
-
 def main():
-    ngram_range = (1, 1)
-    scoring_metric = ["accuracy", "f1_macro"]
-    param_grid = {'C': [0.01, 0.1, 1, 10, 100, 1000],
-                  'gamma': [0.01, 0.1, 1, 10, 100, 1000],
-                  'kernel': ['rbf', 'sigmoid', 'linear']}
+    """ SVC Voting Classifier Ensemble Using TFIDF Features """
+    X_train, X_test, y_train, y_test = load_liar_data()
+    X_train = X_train
+    X_test = X_test
+    y_train = y_train
+    y_test = y_test
 
-    X_train, X_test, y_train, y_test = load_isot_text_data()
+    X_train, X_test = create_tfidf_features(X_train, X_test, (1, 1))
+    print("X_train Shape: {}".format(X_train.shape))
 
-    # RELABEL LIAR DATASET TO USE 2 CLASSES
-    # new_class_labels = [0, 0, 1, 1, 1, 1]
-    # y_train, y_test = re_label(y_train, y_test, new_class_labels)
+    X_train, y_train = oversample(X_train, y_train)
 
-    # TFIDF FEATURES
-    X_train, X_test = create_tfidf_features(X_train, X_test, ngram_range)
+    rbf_svc = SVC(C=1, gamma=0.1, decision_function_shape='ovo', kernel="rbf", random_state=42)
+    linear_svc = SVC(C=1, gamma=0.1, decision_function_shape='ovo', kernel="linear", random_state=42)
+    sigmoid_svc = SVC(C=1, gamma=0.1, decision_function_shape='ovo', kernel="sigmoid", random_state=42)
+    ensemble_svc = VotingClassifier(estimators=[('rbf_svc', rbf_svc), ('linear_svc', linear_svc), ('sigmoid_svc', sigmoid_svc)], voting='hard', verbose=1)
 
-    # LINGUISTIC FEATURES
-    # X_train, X_test = get_linguistic_features(X_train, X_test)
+    ensemble_svc.fit(X_train, y_train)
+    y_pred = ensemble_svc.predict(X_test)
 
-    # UNDERSAMPLE
-    # X_train, y_train = undersample(X_train, y_train)
+    print("Accuracy: ", accuracy_score(y_test, y_pred))
+    print(classification_report(y_test, y_pred))
+    cm = confusion_matrix(y_test, y_pred)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=ensemble_svc.classes_)
+    disp.plot()
+    accuracy = round(accuracy_score(y_test, y_pred) * 100, 2)
+    plt.title("Accuracy Score: {}%".format(accuracy))
+    plt.savefig("VOTING_ENSEMBLE_LIAR_TFIDF_oversampled.png")
+    plt.show()
 
-    # OVERSAMPLE
+    """ SVC Stacking Classifier Ensemble Using TFIDF Features """
+    # X_train, X_test, y_train, y_test = load_liar_data()
+    # X_train = X_train
+    # X_test = X_test
+    # y_train = y_train
+    # y_test = y_test
+    #
+    # X_train, X_test = create_tfidf_features(X_train, X_test, (1, 1))
+    # print("X_train Shape: {}".format(X_train.shape))
+    #
     # X_train, y_train = oversample(X_train, y_train)
-
-    # TRUNCATE
-    X_train, X_test = perform_truncation(X_train, X_test, y_train, 100)
-
-    # OUTPUT LABEL DISTRIBUTIONS
-    print("Train Label Distribution: {}\n".format(y_train.value_counts()))
-    print("Test Label Distribution: {}\n".format(y_test.value_counts()))
-
-    grid_search_svc(X_train, y_train, X_test, y_test, ngram_range, scoring_metric, param_grid)
+    #
+    # rbf_svc = SVC(C=10, gamma=0.1, decision_function_shape='ovo', kernel="rbf", random_state=42, class_weight='balanced')
+    # linear_svc = SVC(C=10, gamma=0.1, decision_function_shape='ovo', kernel="linear", random_state=42, class_weight='balanced')
+    # sigmoid_svc = SVC(C=10, gamma=0.1, decision_function_shape='ovo', kernel="sigmoid", random_state=42, class_weight='balanced')
+    # ensemble_svc = StackingClassifier(estimators=[('sigmoid_svc', sigmoid_svc), ('rbf_svc', rbf_svc)], final_estimator=linear_svc, verbose=1)
+    #
+    # ensemble_svc.fit(X_train, y_train)
+    # y_pred = ensemble_svc.predict(X_test)
+    #
+    # print("Accuracy: ", accuracy_score(y_test, y_pred))
+    # print(classification_report(y_test, y_pred))
+    # cm = confusion_matrix(y_test, y_pred)
+    # disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=ensemble_svc.classes_)
+    # disp.plot()
+    # accuracy = round(accuracy_score(y_test, y_pred) * 100, 2)
+    # plt.title("Accuracy Score: {}%".format(accuracy))
+    # plt.savefig("STACKING_ENSEMBLE_LIAR_TFIDF_oversampled.png")
+    # plt.show()
 
 
 if __name__ == "__main__":

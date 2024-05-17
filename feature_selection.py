@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 def load_liar_data():
-    LIAR_dataframe = pd.read_csv("processed_datasets_nonLemma/LIAR_Dataset_processed/processed_LIAR.csv")
+    LIAR_dataframe = pd.read_csv("processed_datasets/LIAR_Dataset_processed/processed_LIAR.csv")
     LIAR_dataframe = LIAR_dataframe.dropna()
 
     X = LIAR_dataframe[LIAR_dataframe.columns[0: 22]]
@@ -15,7 +15,7 @@ def load_liar_data():
 
 
 def load_isot_data():
-    LIAR_dataframe = pd.read_csv("processed_datasets_nonLemma/ISOT_Fake_News_Dataset_processed/processed_ISOT.csv")
+    LIAR_dataframe = pd.read_csv("processed_datasets/ISOT_Fake_News_Dataset_processed/processed_ISOT.csv")
     LIAR_dataframe = LIAR_dataframe.dropna()
 
     X = LIAR_dataframe[LIAR_dataframe.columns[0: 22]]

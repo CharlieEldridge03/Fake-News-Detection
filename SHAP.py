@@ -9,17 +9,17 @@ import transformers
 from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.decomposition import TruncatedSVD
-from sklearn.ensemble import VotingClassifier, StackingClassifier
+from sklearn.ensemble import VotingClassifier, StackingClassifier, BaggingClassifier, AdaBoostClassifier
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score, classification_report
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.svm import SVC
 from sklearn.preprocessing import MaxAbsScaler, MinMaxScaler
+from sklearn.utils import resample
 import joblib
 from sklearn.model_selection import StratifiedKFold
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, TextClassificationPipeline
 from scipy.special import softmax
-import warnings
 
 
 def load_liar_data():
@@ -85,6 +85,13 @@ def min_max_scale(X_train, X_test):
     return scaled_X_train, scaled_X_test
 
 
+def oversample(X_train, y_train):
+    over_sampler = SMOTE(random_state=42)
+    X_train, y_train = over_sampler.fit_resample(X_train, y_train)
+
+    return X_train, y_train
+
+
 def create_tfidf_features(X_train, X_test, ngram_range):
     tfidf = TfidfVectorizer(ngram_range=ngram_range)
     X_train_tfidf = tfidf.fit_transform(X_train.text)
@@ -111,53 +118,42 @@ def perform_truncation(X_train, X_test, y_train, num_components):
     return scaled_X_train, scaled_X_test
 
 
-def score_and_visualize(text, pipeline):
-    prediction = pipeline([text])
-    print(prediction[0])
-
-    explainer = shap.Explainer(pipeline)
-    shap_values = explainer([text])
-
-    print(shap_values)
-
-    shap.summary_plot(shap_values[0])
-    shap.summary_plot(shap_values[1])
-    shap.summary_plot(shap_values[2])
-    shap.summary_plot(shap_values[3])
-    shap.summary_plot(shap_values[4])
-    shap.summary_plot(shap_values[5])
-
-
 def main():
-    """ SVC Stacked Model Ensemble Using Linguistic Features """
-    X_train, X_test, y_train, y_test = load_liar_data()
-    X_train = X_train
-    X_test = X_test
-    y_train = y_train
-    y_test = y_test
+    """ SVC Boosting Classifier Ensemble Using Linguistic Features """
+    # X_train, X_test, y_train, y_test = load_liar_data()
+    # X_train = X_train[:20]
+    # X_test = X_test[:20]
+    # y_train = y_train[:20]
+    # y_test = y_test[:20]
+    #
+    # X_train = X_train.drop(["text"], axis=1)
+    # X_test = X_test.drop(["text"], axis=1)
+    # print("X_train Shape: {}".format(X_train.shape))
+    #
+    # svc = SVC(C=100, gamma=0.1, decision_function_shape='ovo', kernel="rbf", probability=True, random_state=42)
+    # boosting_ensemble = AdaBoostClassifier(estimator=svc, n_estimators=100, random_state=42)
+    # boosting_ensemble.fit(X_train, y_train)
+    #
+    # y_pred = boosting_ensemble.predict(X_test)
+    #
+    # print("Accuracy: ", accuracy_score(y_test, y_pred))
+    # print(classification_report(y_test, y_pred))
+    # cm = confusion_matrix(y_test, y_pred)
+    # disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=boosting_ensemble.classes_)
+    # disp.plot()
+    # plt.show()
+    #
+    # explainer = shap.KernelExplainer(model=boosting_ensemble.predict_proba, data=X_train, link="logit")
+    # shap_values = explainer.shap_values(X_test)
+    #
+    # shap.summary_plot(shap_values[0], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[1], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[2], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[3], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[4], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[5], X_test, feature_names=X_train.columns, plot_type="bar")
 
-    X_train = X_train.drop(["text"], axis=1)
-    X_test = X_test.drop(["text"], axis=1)
-    print("X_train Shape: {}".format(X_train.shape))
-
-    rbf_svc = SVC(C=1, gamma=1, decision_function_shape='ovo', kernel="rbf", probability=True, random_state=42)
-    linear_svc = SVC(C=1, gamma=1, decision_function_shape='ovo', kernel="linear", probability=True, random_state=42)
-    poly_svc = SVC(C=1, gamma=1, decision_function_shape='ovo', kernel="poly", probability=True, random_state=42)
-    sigmoid_svc = SVC(C=1, gamma=1, decision_function_shape='ovo', kernel="sigmoid", probability=True, random_state=42)
-
-    ensemble_svc_sc = StackingClassifier(estimators=[('linear_svc', linear_svc), ('poly_svc', poly_svc), ('sigmoid_svc', sigmoid_svc)], final_estimator=rbf_svc, verbose=1)
-    ensemble_svc_sc.fit(X_train, y_train)
-    y_pred = ensemble_svc_sc.predict(X_test)
-
-    print("Accuracy: ", accuracy_score(y_test, y_pred))
-    print(classification_report(y_test, y_pred))
-    cm = confusion_matrix(y_test, y_pred)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=ensemble_svc_sc.classes_)
-    disp.plot()
-    plt.show()
-
-
-    """ SVC VotingClassifier Ensemble Using Linguistic Features """
+    """ SVC Bagging Classifier Ensemble Using Linguistic Features """
     # X_train, X_test, y_train, y_test = load_liar_data()
     # X_train = X_train
     # X_test = X_test
@@ -168,24 +164,97 @@ def main():
     # X_test = X_test.drop(["text"], axis=1)
     # print("X_train Shape: {}".format(X_train.shape))
     #
-    # # X_train, X_test = perform_truncation(X_train, X_test, y_train, 100)
-    # # print("X_train Shape after TruncatedSVD: {}".format(X_train.shape))
+    # svc = SVC(C=100, gamma=0.001, decision_function_shape='ovo', kernel="rbf", probability=True, random_state=42)
+    # bagging_ensemble = BaggingClassifier(estimator=svc, n_estimators=10)
+    # bagging_ensemble.fit(X_train, y_train)
     #
-    # rbf_svc = SVC(C=1, gamma=1, decision_function_shape='ovo', kernel="rbf", probability=True, random_state=42)
-    # linear_svc = SVC(C=1, gamma=1, decision_function_shape='ovo', kernel="linear", probability=True, random_state=42)
-    # poly_svc = SVC(C=1, gamma=1, decision_function_shape='ovo', kernel="poly", probability=True, random_state=42)
-    # sigmoid_svc = SVC(C=1, gamma=1, decision_function_shape='ovo', kernel="sigmoid", probability=True, random_state=42)
-    # ensemble_svc_vc = VotingClassifier(estimators=[('rbf_svc', rbf_svc), ('linear_svc', linear_svc), ('poly_svc', poly_svc), ('sigmoid_svc', sigmoid_svc)], voting='soft', verbose=1)
-    #
-    # ensemble_svc_vc.fit(X_train, y_train)
-    # y_pred = ensemble_svc_vc.predict(X_test)
+    # y_pred = bagging_ensemble.predict(X_test)
     #
     # print("Accuracy: ", accuracy_score(y_test, y_pred))
     # print(classification_report(y_test, y_pred))
     # cm = confusion_matrix(y_test, y_pred)
-    # disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=ensemble_svc_vc.classes_)
+    # disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=bagging_ensemble.classes_)
     # disp.plot()
     # plt.show()
+
+    """ SVC Stacked Model Ensemble Using Linguistic Features """
+    # X_train, X_test, y_train, y_test = load_liar_data()
+    # X_train = X_train[:50]
+    # X_test = X_test[:50]
+    # y_train = y_train[:50]
+    # y_test = y_test[:50]
+    #
+    # X_train = X_train.drop(["text"], axis=1)
+    # X_test = X_test.drop(["text"], axis=1)
+    # print("X_train Shape: {}".format(X_train.shape))
+    #
+    # rbf_svc = SVC(C=10, gamma=0.1, decision_function_shape='ovo', kernel="rbf", probability=True, random_state=42)
+    # linear_svc = SVC(C=10, gamma=0.1, decision_function_shape='ovo', kernel="linear", probability=True, random_state=42)
+    # poly_svc = SVC(C=10, gamma=0.1, decision_function_shape='ovo', kernel="poly", probability=True, random_state=42)
+    # sigmoid_svc = SVC(C=10, gamma=0.1, decision_function_shape='ovo', kernel="sigmoid", probability=True, random_state=42)
+    #
+    # ensemble_svc_sc = StackingClassifier(estimators=[('linear_svc', linear_svc), ('poly_svc', rbf_svc), ('sigmoid_svc', poly_svc)], final_estimator=sigmoid_svc, verbose=1)
+    # ensemble_svc_sc.fit(X_train.values, y_train.values)
+    # y_pred = ensemble_svc_sc.predict(X_test)
+    #
+    # print("Accuracy: ", accuracy_score(y_test, y_pred))
+    # print(classification_report(y_test, y_pred))
+    # cm = confusion_matrix(y_test, y_pred)
+    # disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=ensemble_svc_sc.classes_)
+    # disp.plot()
+    # plt.show()
+    #
+    # explainer = shap.KernelExplainer(model=ensemble_svc_sc.predict_proba, data=X_train, link="logit")
+    # shap_values = explainer.shap_values(X_test)
+    #
+    # shap.summary_plot(shap_values[0], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[1], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[2], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[3], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[4], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[5], X_test, feature_names=X_train.columns, plot_type="bar")
+
+    """ SVC VotingClassifier Ensemble Using Linguistic Features """
+    X_train, X_test, y_train, y_test = load_liar_data()
+    X_train = X_train
+    X_test = X_test
+    y_train = y_train
+    y_test = y_test
+
+    # X_train = X_train.drop(["text"], axis=1)
+    # X_test = X_test.drop(["text"], axis=1)
+    X_train, X_test, feature_names = create_tfidf_features(X_train, X_test, (1, 1))
+    print("X_train Shape: {}".format(X_train.shape))
+
+    X_train, y_train = oversample(X_train, y_train)
+    X_train, X_test = perform_truncation(X_train, X_test, y_train, 100)
+    # print("X_train Shape after TruncatedSVD: {}".format(X_train.shape))
+
+    linear_svc = SVC(C=100, gamma=0.01, decision_function_shape='ovo', kernel="linear", probability=True, random_state=42)
+    rbf_svc = SVC(C=100, gamma=0.01, decision_function_shape='ovo', kernel="rbf", probability=True, random_state=42)
+    sigmoid_svc = SVC(C=100, gamma=0.01, decision_function_shape='ovo', kernel="sigmoid", probability=True, random_state=42)
+    ensemble_svc_vc = VotingClassifier(estimators=[('linear_svc', linear_svc), ('rbf_svc', rbf_svc), ('sigmoid_svc', sigmoid_svc)], voting='soft', verbose=1)
+
+    ensemble_svc_vc.fit(X_train, y_train)
+    y_pred = ensemble_svc_vc.predict(X_test)
+
+    print("Accuracy: ", accuracy_score(y_test, y_pred))
+    print(classification_report(y_test, y_pred))
+    cm = confusion_matrix(y_test, y_pred)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=ensemble_svc_vc.classes_)
+    disp.plot()
+    plt.show()
+    #
+    # explainer = shap.KernelExplainer(model=ensemble_svc_vc.predict_proba, data=X_train, feature_names=X_train.columns, link="logit")
+    # shap_values = explainer.shap_values(X_test)
+    #
+    # shap.summary_plot(shap_values[0], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[1], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[2], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[3], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[4], X_test, feature_names=X_train.columns, plot_type="bar")
+    # shap.summary_plot(shap_values[5], X_test, feature_names=X_train.columns, plot_type="bar")
+
 
     """ Decision Plots Using TFIDF Features """
     # X_train, X_test, y_train, y_test = load_liar_data()

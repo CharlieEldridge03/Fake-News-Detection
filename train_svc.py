@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import RandomUnderSampler
 from sklearn.decomposition import TruncatedSVD
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -13,11 +14,11 @@ from sklearn.model_selection import StratifiedKFold
 
 def load_liar_data():
     LIAR_train_dataframe = pd.read_csv("processed_datasets/LIAR_Dataset_processed/processed_LIAR_train.csv",
-                                       index_col=False).dropna()
+                                       index_col=False)
     LIAR_test_dataframe = pd.read_csv("processed_datasets/LIAR_Dataset_processed/processed_LIAR_test.csv",
-                                      index_col=False).dropna()
+                                      index_col=False)
     LIAR_valid_dataframe = pd.read_csv("processed_datasets/LIAR_Dataset_processed/processed_LIAR_valid.csv",
-                                       index_col=False).dropna()
+                                       index_col=False)
 
     X_train = LIAR_train_dataframe[LIAR_train_dataframe.columns[0: 22]]
     y_train = LIAR_train_dataframe[LIAR_train_dataframe.columns[22]]
@@ -38,7 +39,7 @@ def load_liar_data():
 def load_isot_text_data():
     ISOT_text_dataframe = pd.read_csv(
         "processed_datasets/ISOT_Fake_News_Dataset_processed/processed_ISOT_texts.csv",
-        index_col=False).dropna()
+        index_col=False)
 
     X = ISOT_text_dataframe[ISOT_text_dataframe.columns[0: 22]]
     y = ISOT_text_dataframe[ISOT_text_dataframe.columns[22]]
@@ -53,7 +54,7 @@ def load_isot_text_data():
 def load_isot_title_data():
     ISOT_title_dataframe = pd.read_csv(
         "processed_datasets/ISOT_Fake_News_Dataset_processed/processed_ISOT_titles.csv",
-        index_col=False).dropna()
+        index_col=False)
 
     X = ISOT_title_dataframe[ISOT_title_dataframe.columns[0: 22]]
     y = ISOT_title_dataframe[ISOT_title_dataframe.columns[22]]
@@ -101,6 +102,13 @@ def undersample(X_train, y_train):
     return X_train, y_train
 
 
+def oversample(X_train, y_train):
+    over_sampler = SMOTE(random_state=42)
+    X_train, y_train = over_sampler.fit_resample(X_train, y_train)
+
+    return X_train, y_train
+
+
 def re_label(y_train, y_test, new_class_labels):
     y_train.replace([0, 1, 2, 3, 4, 5], new_class_labels, inplace=True)
     y_test.replace([0, 1, 2, 3, 4, 5], new_class_labels, inplace=True)
@@ -137,30 +145,30 @@ def grid_search_svc(X_train, y_train, X_test, y_test, ngram_range, scoring_metri
         accuracy = round(accuracy_score(y_test, grid_predictions) * 100, 2)
         plt.title("Accuracy Score: {}%".format(accuracy))
         plt.suptitle("Model Params: [{}]".format(grid.best_estimator_), fontsize="small")
-        plt.savefig("ISOT_Text_Trunc100_{}_ngrams{}.png".format(scoring_metric, ngram_range))
+        plt.savefig("LIAR_Linguistic_{}_ngrams{}.png".format(scoring_metric, ngram_range))
         report = classification_report(y_test, grid_predictions)
         print("Classification Report: {}\n".format(report))
-        joblib.dump(grid, "ISOT_Text_Trunc100_{}_ngrams{}.pkl".format(scoring_metric, ngram_range))
+        joblib.dump(grid, "LIAR_Linguistic_{}_ngrams{}.pkl".format(scoring_metric, ngram_range))
 
 
 def main():
     ngram_range = (1, 1)
-    scoring_metric = ["accuracy", "f1_macro"]
+    scoring_metric = ["f1_macro", "accuracy"]
     param_grid = {'C': [0.01, 0.1, 1, 10, 100, 1000],
                   'gamma': [0.01, 0.1, 1, 10, 100, 1000],
                   'kernel': ['rbf', 'sigmoid', 'linear']}
 
-    X_train, X_test, y_train, y_test = load_isot_text_data()
+    X_train, X_test, y_train, y_test = load_liar_data()
 
     # RELABEL LIAR DATASET TO USE 2 CLASSES
     # new_class_labels = [0, 0, 1, 1, 1, 1]
     # y_train, y_test = re_label(y_train, y_test, new_class_labels)
 
     # TFIDF FEATURES
-    X_train, X_test = create_tfidf_features(X_train, X_test, ngram_range)
+    # X_train, X_test = create_tfidf_features(X_train, X_test, ngram_range)
 
     # LINGUISTIC FEATURES
-    # X_train, X_test = get_linguistic_features(X_train, X_test)
+    X_train, X_test = get_linguistic_features(X_train, X_test)
 
     # UNDERSAMPLE
     # X_train, y_train = undersample(X_train, y_train)
@@ -169,7 +177,7 @@ def main():
     # X_train, y_train = oversample(X_train, y_train)
 
     # TRUNCATE
-    X_train, X_test = perform_truncation(X_train, X_test, y_train, 100)
+    # X_train, X_test = perform_truncation(X_train, X_test, y_train, 100)
 
     # OUTPUT LABEL DISTRIBUTIONS
     print("Train Label Distribution: {}\n".format(y_train.value_counts()))
@@ -180,3 +188,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+

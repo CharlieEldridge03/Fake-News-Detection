@@ -101,7 +101,7 @@ def process_ISOT_dataset():
         file_name = file_path.split("\\")[-1]
         print(f"Processing: {file_name}.")
 
-        file_contents = pd.read_csv(file_path, sep=",").dropna()
+        file_contents = pd.read_csv(file_path, sep=",")
 
         for _, row in file_contents.iterrows():
             title = row.title
@@ -235,7 +235,7 @@ def process_LIAR_dataset():
 
         file_name = file_path.split("\\")[-1]
         print(f"Processing: {file_name}.")
-        file_contents = pd.read_csv(file_path, sep="\t", header=None).dropna()
+        file_contents = pd.read_csv(file_path, sep="\t", header=None)
         file_contents.columns = ["json_id", "label", "statement", "subjects", "speaker", "speaker_job_title",
                                  "state_info", "party_affiliation", "credit_history_count", "barely_true_counts",
                                  "false_counts", "half_true_counts", "mostly_true_counts", "pants_on_fire_counts"]
@@ -310,7 +310,7 @@ def main():
 
     ISOT_output_directory, LIAR_output_directory = create_output_directories()
     print("Starting to Process ISOT dataset.")
-    processed_ISOT_title_data, processed_ISOT_text_data = process_ISOT_dataset()
+    # processed_ISOT_title_data, processed_ISOT_text_data = process_ISOT_dataset()
     print("Done Processing ISOT dataset.\n")
 
     print("Starting to Process LIAR dataset.")
@@ -325,20 +325,20 @@ def main():
                     "lexicon_count", "polysyllable_count", "monosyllable_count", "conjunction_count",
                     "pronoun_count", "stopword_count", "present_tense_count", "past_tense_count", "label"]
 
-    ISOT_title_dataframe = pd.DataFrame(processed_ISOT_title_data, columns=column_names)
-    ISOT_text_dataframe = pd.DataFrame(processed_ISOT_text_data, columns=column_names)
+    # ISOT_title_dataframe = pd.DataFrame(processed_ISOT_title_data, columns=column_names)
+    # ISOT_text_dataframe = pd.DataFrame(processed_ISOT_text_data, columns=column_names)
     LIAR_test_dataframe = pd.DataFrame(processed_LIAR_test_data, columns=column_names)
     LIAR_train_dataframe = pd.DataFrame(processed_LIAR_train_data, columns=column_names)
     LIAR_valid_dataframe = pd.DataFrame(processed_LIAR_valid_data, columns=column_names)
 
-    ISOT_title_dataframe = normalise_data(ISOT_title_dataframe)
-    ISOT_text_dataframe = normalise_data(ISOT_text_dataframe)
+    # ISOT_title_dataframe = normalise_data(ISOT_title_dataframe)
+    # ISOT_text_dataframe = normalise_data(ISOT_text_dataframe)
     LIAR_test_dataframe = normalise_data(LIAR_test_dataframe)
     LIAR_train_dataframe = normalise_data(LIAR_train_dataframe)
     LIAR_valid_dataframe = normalise_data(LIAR_valid_dataframe)
 
-    ISOT_title_dataframe.to_csv("{}\\processed_ISOT_titles.csv".format(ISOT_output_directory), index=False)
-    ISOT_text_dataframe.to_csv("{}\\processed_ISOT_texts.csv".format(ISOT_output_directory), index=False)
+    # ISOT_title_dataframe.to_csv("{}\\processed_ISOT_titles.csv".format(ISOT_output_directory), index=False)
+    # ISOT_text_dataframe.to_csv("{}\\processed_ISOT_texts.csv".format(ISOT_output_directory), index=False)
     LIAR_test_dataframe.to_csv("{}\\processed_LIAR_test.csv".format(LIAR_output_directory), index=False)
     LIAR_train_dataframe.to_csv("{}\\processed_LIAR_train.csv".format(LIAR_output_directory), index=False)
     LIAR_valid_dataframe.to_csv("{}\\processed_LIAR_valid.csv".format(LIAR_output_directory), index=False)
