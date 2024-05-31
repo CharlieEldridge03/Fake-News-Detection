@@ -1,12 +1,13 @@
+import pyarrow as pa
+import pandas as pd
+import numpy as np
+import torch
+import transformers
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, EvalPrediction
 from sklearn.metrics import f1_score, roc_auc_score, accuracy_score
 from sklearn.model_selection import train_test_split
 from transformers import TrainingArguments, Trainer
 from datasets import DatasetDict, Dataset
-import pyarrow as pa
-import pandas as pd
-import numpy as np
-import torch
 
 
 def load_liar_data():
@@ -19,11 +20,11 @@ def load_liar_data():
         5: [False, False, False, False, False, True]
     }
 
-    LIAR_train_dataframe = pd.read_csv("processed_datasets_nonLemma/LIAR_Dataset_processed/processed_LIAR_train.csv",
+    LIAR_train_dataframe = pd.read_csv("processed_datasets/LIAR_Dataset_processed/processed_LIAR_train.csv",
                                        index_col=False).dropna()
-    LIAR_test_dataframe = pd.read_csv("processed_datasets_nonLemma/LIAR_Dataset_processed/processed_LIAR_test.csv",
+    LIAR_test_dataframe = pd.read_csv("processed_datasets/LIAR_Dataset_processed/processed_LIAR_test.csv",
                                       index_col=False).dropna()
-    LIAR_valid_dataframe = pd.read_csv("processed_datasets_nonLemma/LIAR_Dataset_processed/processed_LIAR_valid.csv",
+    LIAR_valid_dataframe = pd.read_csv("processed_datasets/LIAR_Dataset_processed/processed_LIAR_valid.csv",
                                        index_col=False).dropna()
 
     LIAR_train_dataframe[["true", "mostly-true", "half-true", "barely-true", "false", "pants-fire"]] = pd.DataFrame(LIAR_train_dataframe["label"].map(label_dict).tolist(),
@@ -51,7 +52,7 @@ def load_liar_data():
 
 def load_isot_title_data():
     ISOT_title_dataframe = pd.read_csv(
-        "processed_datasets_nonLemma/ISOT_Fake_News_Dataset_processed/processed_ISOT_titles.csv",
+        "processed_datasets/ISOT_Fake_News_Dataset_processed/processed_ISOT_titles.csv",
         index_col=False).dropna()
 
     label_dict = {
@@ -74,7 +75,7 @@ def load_isot_title_data():
 
 def load_isot_text_data():
     ISOT_text_dataframe = pd.read_csv(
-        "processed_datasets_nonLemma/ISOT_Fake_News_Dataset_processed/processed_ISOT_texts.csv",
+        "processed_datasets/ISOT_Fake_News_Dataset_processed/processed_ISOT_texts.csv",
         index_col=False).dropna()
 
     label_dict = {
@@ -189,7 +190,7 @@ def main():
                                                                id2label=id2label,
                                                                label2id=label2id)
     args = TrainingArguments(
-        "bert-finetuned-fake-news",
+        "bert-liar",
         evaluation_strategy="epoch",
         save_strategy="epoch",
         learning_rate=LEARNING_RATE,
@@ -213,9 +214,7 @@ def main():
 
     trainer.train()
     trainer.evaluate()
-    trainer.save_model("bert-fake-news-finetuned_bestmodel")
-
-    # Now Save a Confusion Matrix with the final test accuracy
+    trainer.save_model("bert-liar-bestmodel")
 
 
 if __name__ == "__main__":
