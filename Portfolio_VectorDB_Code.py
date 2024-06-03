@@ -1,5 +1,12 @@
 """
-Tutorial - https://docs.trychroma.com/getting-started
+Developed Using the Following Tutorial - https://docs.trychroma.com/getting-started
+
+Portfolio_SVM_GridSearch.py: Constructs a Vector Database and Evaluates its classification performance on the test set.
+
+Author: Charlie Eldridge
+Last Updated: 03/06/2024
+Version: "1.0"
+email: charlieeldridge03@gmail.com
 """
 
 import chromadb

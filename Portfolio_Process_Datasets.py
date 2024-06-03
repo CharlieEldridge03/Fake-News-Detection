@@ -1,5 +1,11 @@
 """
+Portfolio_Process_Datasets.py: Preprocesses the LIAR and ISOT datasets and output the produced CSV files with
+non-stopword text and linguistic features.
 
+Author: Charlie Eldridge
+Last Updated: 03/06/2024
+Version: "1.5"
+email: charlieeldridge03@gmail.com
 """
 
 
