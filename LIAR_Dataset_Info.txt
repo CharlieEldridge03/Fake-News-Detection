@@ -1,6 +1,0 @@
-https://paperswithcode.com/dataset/liar
-
-changed:
-"The vast majority of the money I got was from small donors all across the country.''
-in 1720.json to
-"The vast majority of the money I got was from small donors all across the country."
